@@ -2,30 +2,59 @@ const list = document.querySelector("#list");
 const addTodoBotton = document.querySelector("#add");
 const removeTodoBotton = document.querySelector("#remove");
 
-const todos = [];
+let todos = [];
 
-/*l
-ocalStorage.setItem("todos", JSON.stringify(todos));
-const allTodos = JSON.parse(localStorage.getItem("todos")) || [];
-console.log(allTodos);
-*/
+function addToLocalStorage() {
+  localStorage.setItem("todos", JSON.stringify(todos));
+}
+
+function syncTodos() {
+  const todosFromLocalStorage = localStorage.getItem("todos");
+  if (todosFromLocalStorage) {
+    todos = JSON.parse(todosFromLocalStorage);
+  }
+}
+
+syncTodos();
 
 function renderTodos() {
   list.innerHTML = "";
 
-  todos.forEach((todo) => {
-    const newLi = document.createElement("li");
+  const filteredTodos = todos.filter(checkFilterForTodo);
+  filteredTodos.forEach((todo) => renderSingleTodo(todo));
+}
 
-    const checkbox = document.createElement("input");
-    checkbox.type = "checkbox";
-    checkbox.checked = todo.done;
-    newLi.appendChild(checkbox);
+function checkFilterForTodo(todo) {
+  const filter = getCurrentFilter();
 
-    const todoText = document.createTextNode(todo.description);
-    newLi.appendChild(todoText);
+  return (
+    filter === "all" ||
+    (filter === "open" && todo.done === false) ||
+    (filter === "done" && todo.done === true)
+  );
+}
 
-    list.appendChild(newLi);
+function renderSingleTodo(todo) {
+  const newLi = document.createElement("li");
+  if (todo.done === true) {
+    newLi.style.textDecoration = "line-through";
+  }
+
+  const checkbox = document.createElement("input");
+  checkbox.type = "checkbox";
+  checkbox.checked = todo.done;
+
+  checkbox.addEventListener("change", () => {
+    todo.done = !todo.done;
+    addToLocalStorage();
   });
+
+  newLi.appendChild(checkbox);
+
+  const todoText = document.createTextNode(todo.description);
+  newLi.appendChild(todoText);
+
+  list.appendChild(newLi);
 }
 
 addTodoBotton.addEventListener("click", function () {
@@ -38,23 +67,32 @@ addTodoBotton.addEventListener("click", function () {
     alert("What is your ToDo?");
   } else {
     todos.push(newTodo);
+
+    addToLocalStorage();
+
     newInput.value = "";
     renderTodos();
   }
 });
+renderTodos();
+addToLocalStorage();
 
-function removeDoneTodos() {
-  const allTasks = list.children;
-  console.log(allTasks);
-  for (let i = allTasks.length - 1; i >= 0; i--) {
-    const li = allTasks[i];
-    const checkbox = li.querySelector('input[type="checkbox"]');
-    if (checkbox.checked === true) {
-      li.remove();
-    }
-  }
+const filters = document.querySelector("#filter");
+filters.addEventListener("change", function (e) {
+  //console.log(getCurrentFilter());
+  renderTodos();
+});
+
+function getCurrentFilter() {
+  return document.querySelector('input[name="filter"]:checked').value;
 }
-removeTodoBotton.addEventListener("click", removeDoneTodos);
+renderTodos();
+
+removeTodoBotton.addEventListener("click", (event) => {
+  todos = todos.filter((todo) => !todo.done);
+  addToLocalStorage();
+  renderTodos();
+});
 
 function changeDoneStyle(e) {
   if (e.target.checked === true) {
